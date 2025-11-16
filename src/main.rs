@@ -192,7 +192,9 @@ async fn main() -> Result<(), rocket::Error> {
         .merge(("address", "0.0.0.0"));
 
     rocket::custom(figment)
-        .mount("/", routes![index])
+        .mount("/", routes![hello])
+        .mount("/hello", routes![world, mir])
+        .mount("/wave", routes![wave])
         .launch()
         .await?;
 
