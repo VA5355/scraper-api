@@ -182,15 +182,20 @@ fn hello(lang: Option<Lang>, opt: Options<'_>) -> String {
 
 #[rocket::main]
 async fn main() -> Result<(), rocket::Error> {
-    let figment = rocket::Config::figment()
-        .merge(("address", "0.0.0.0"))
-        .merge(("port", std::env::var("PORT").unwrap_or("8000".into())));
+    let port: u16 = std::env::var("PORT")
+        .unwrap_or_else(|_| "8000".to_string())
+        .parse()
+        .expect("PORT must be a valid number");
 
-    let _ = rocket::custom(figment).mount("/", routes![hello])
-        .mount("/hello", routes![world, mir])
-        .mount("/wave", routes![wave])
+    let figment = rocket::Config::figment()
+        .merge(("port", port))
+        .merge(("address", "0.0.0.0"));
+
+    rocket::custom(figment)
+        .mount("/", routes![index])
         .launch()
         .await?;
+
     Ok(())
 }
 /*
