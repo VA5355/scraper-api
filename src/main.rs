@@ -32,12 +32,22 @@ use serde::Serialize;
 use std::collections::HashMap;
 mod search;
 use flipkart_scraper::{search::SearchParams, Url};
-use search::search_product;
+use search::{search_product, SearchParams};
 mod product;
 use axum::response::IntoResponse;
 use product::product_details;
-use serde_json::json;
+use serde_json::{json, Value};
 
+// Keep your existing search_product(...) and product_details(...) functions as-is.
+// They are async and return Result<T, E> where T: Serialize, E: Display/Serialize.
+
+// ApiError struct (same shape as your previous)
+#[derive(Debug, Serialize)]
+pub struct ApiError {
+    error_message: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    more_details: Option<String>,
+}
 
 
 // Helper alias for responses we return from Rocket handlers
@@ -50,7 +60,7 @@ fn json_response(status: Status, value: Value) -> RJson {
 
 fn internal_error<E: std::fmt::Display>(e: E) -> RJson {
     let err = ApiError {
-        error_message: "Internal Server Error".into(),
+        error_message: "Internal Server Error",
         more_details: Some(format!(
             "There was some internal server error. {e}. \
             Report issues at https://github.com/dvishal485/flipkart-scraper-api"
@@ -59,11 +69,13 @@ fn internal_error<E: std::fmt::Display>(e: E) -> RJson {
     json_response(Status::InternalServerError, json!({ "error": err }))
 }
 
+/*
 // INDEX route (equivalent to your "/" route)
 #[get("/")]
 fn index() -> RJson {
     json_response(Status::Ok, json!({ "message": "Flipkart Scraper API (Rocket)" }))
 }
+*/
 
 // ---------- SEARCH routes ----------
 // Two Rocket routes: /search (no path) and /search/<query..>
@@ -77,12 +89,29 @@ async fn search_root(params: Option<HashMap<String, String>>) -> RJson {
     let query = None::<String>;
     perform_search(query, params).await
 }
-
+/*
 #[get("/search/<query..>?<params..>")]
 async fn search_with_query(query: RocketPathBuf, params: Option<HashMap<String, String>>) -> RJson {
     let q = query.to_string_lossy().to_string();
     perform_search(Some(q), params).await
 }
+*/
+
+#[get("/search?<query>&<params..>")]
+async fn search_router(
+    query: Option<String>,
+    params: Option<HashMap<String, String>>,
+) -> Json<search::SearchResponse> {
+
+    let q = query.unwrap_or_default();
+
+    // Convert Option<HashMap<>> → SearchParams
+    let params = SearchParams::from(params.unwrap_or_default());
+
+    let result = search_product(q, params).await;
+    Json(result)
+}
+
 
 // Shared logic extracted from your old `search_router`
 async fn perform_search(query: Option<String>, params_map: Option<HashMap<String, String>>) -> RJson {
@@ -115,6 +144,24 @@ async fn perform_search(query: Option<String>, params_map: Option<HashMap<String
     }
 }
 
+// ----------------------- PRODUCT ROUTE -----------------------------
+
+#[get("/product/<url..>?<params..>")]
+async fn product_router(
+    url: rocket::http::uri::PathBuf,
+    params: Option<HashMap<String, String>>,
+) -> Json<product::ProductResponse> {
+
+    let url_str = url.to_string();
+
+    let params_map = params.unwrap_or_default();
+
+    let response = get_product(url_str, params_map).await;
+
+    Json(response)
+}
+
+/*
 // ---------- PRODUCT route ----------
 #[get("/product/<url..>?<params..>")]
 async fn product_route(url: RocketPathBuf, params: Option<HashMap<String, String>>) -> RJson {
@@ -136,7 +183,7 @@ async fn product_route(url: RocketPathBuf, params: Option<HashMap<String, String
         Err(e) => json_response(Status::BadGateway, json!({ "error": e })),
     }
 }
-
+*/
 // ---------- Catcher for 404 -> redirect to "/" ----------
 #[catch(404)]
 fn not_found() -> Redirect {
@@ -167,7 +214,7 @@ fn wave(name: &str, age: u8) -> String {
     format!("👋 Hello, {} year old named {}!", age, name)
 }
 
-
+/*
 // Note: without the `..` in `opt..`, we'd need to pass `opt.emoji`, `opt.name`.
 //
 // Try visiting:
@@ -200,7 +247,7 @@ fn hello(lang: Option<Lang>, opt: Options<'_>) -> String {
 
     greeting.push('!');
     greeting
-}
+}*/
 
 #[get("/")]
 fn index() -> (Status, (rocket::http::ContentType, String)) {
