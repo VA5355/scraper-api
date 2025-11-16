@@ -180,6 +180,56 @@ fn hello(lang: Option<Lang>, opt: Options<'_>) -> String {
     greeting
 }
 
+#[get("/")]
+fn index() -> (Status, (rocket::http::ContentType, String)) {
+     let deploy_url =
+        std::env::var("DEPLOYMENT_URL").unwrap_or_else(|_| DEFAULT_DEPLOYMENT_URL.to_string());
+
+    let description: Value = json!({
+        "name": env!("CARGO_PKG_NAME"),
+        "description": env!("CARGO_PKG_DESCRIPTION"),
+        "version": env!("CARGO_PKG_VERSION"),
+        "authors": env!("CARGO_PKG_AUTHORS"),
+        "repository": env!("CARGO_PKG_REPOSITORY"),
+        "license": env!("CARGO_PKG_LICENSE"),
+        "usage": {
+            "search_api": format!("{deploy_url}/search/{{product_name}}"),
+            "product_api": format!("{deploy_url}/product/{{product_link_argument}}"),
+        }
+    });
+
+    let body = description.to_string(); // Replace with your `description`
+    (
+        Status::Ok,
+        (rocket::http::ContentType::JSON, body)
+    )
+}
+
+#[get("/search")]
+#[get("/search/")]
+fn search_root() -> Json<SearchResponse> {
+    search_router(None)
+}
+
+#[get("/search/<query..>")]
+fn search_handler(query: std::path::PathBuf) -> Json<SearchResponse> {
+    let q = query.to_string_lossy().to_string();
+    search_router(Some(q))
+}
+
+#[get("/product/<url..>")]
+fn product_handler(url: std::path::PathBuf) -> Json<ProductResponse> {
+    let product_url = url.to_string_lossy().to_string();
+    product_router(product_url)
+}
+
+/// Fallback catch-all route
+#[catch(404)]
+fn not_found() -> Redirect {
+    Redirect::permanent("/")
+}
+
+
 #[rocket::main]
 async fn main() -> Result<(), rocket::Error> {
     let port: u16 = std::env::var("PORT")
@@ -192,9 +242,15 @@ async fn main() -> Result<(), rocket::Error> {
         .merge(("address", "0.0.0.0"));
 
     rocket::custom(figment)
-        .mount("/", routes![hello])
+        .mount("/", routes![hello, index])
         .mount("/hello", routes![world, mir])
         .mount("/wave", routes![wave])
+        .mount("/", routes![
+	        search_root,
+	        search_handler,
+	        product_handler
+        ])
+        .register("/", catchers![not_found])
         .launch()
         .await?;
 
