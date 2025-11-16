@@ -97,3 +97,43 @@ pub struct SearchResultResponse {
     fetch_from: String,
     result: Vec<SearchResultProduct>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SearchParams {
+    pub category: Option<String>,
+    pub sort: Option<String>,
+    pub page: Option<u32>,
+    pub limit: Option<u32>,
+    pub extra: HashMap<String, String>, // everything else
+}
+
+impl SearchParams {
+    /// Convert HashMap<String,String> → SearchParams
+    pub fn from(map: HashMap<String, String>) -> Self {
+        let mut category = None;
+        let mut sort = None;
+        let mut page = None;
+        let mut limit = None;
+
+        // copy everything else here
+        let mut extra = HashMap::new();
+
+        for (key, value) in map.into_iter() {
+            match key.as_str() {
+                "category" => category = Some(value),
+                "sort"     => sort = Some(value),
+                "page"     => page = value.parse().ok(),
+                "limit"    => limit = value.parse().ok(),
+                _ => { extra.insert(key, value); }
+            }
+        }
+
+        SearchParams {
+            category,
+            sort,
+            page,
+            limit,
+            extra,
+        }
+    }
+}
