@@ -56,6 +56,79 @@ fn default_error_response(e: Error) -> Response<Body> {
         .unwrap_or_default()
 }
 
+fn json_response(status: StatusCode, value: serde_json::Value) -> Response {
+    Response::builder()
+        .status(status)
+        .header("Content-Type", "application/json")
+        .body(Body::from(value.to_string()))
+        .unwrap_or_default()
+}
+
+fn internal_error<E: std::fmt::Display>(e: E) -> Response {
+    let err = ApiError {
+        error_message: "Internal Server Error".into(),
+        more_details: Some(format!(
+            "There was some internal server error. {e}. \
+            Report issues at https://github.com/dvishal485/flipkart-scraper-api"
+        )),
+    };
+    json_response(StatusCode::INTERNAL_SERVER_ERROR, json!({"error": err}))
+}
+pub async fn search_router(
+    query: Option<Path<String>>,
+    params: Result<Query<SearchParams>, axum::extract::rejection::QueryRejection>,
+) -> Response {
+    let q = query.map(|v| v.to_string()).unwrap_or_default();
+
+    match params {
+        Err(e) => {
+            let err = ApiError {
+                error_message: "Invalid query parameters".into(),
+                more_details: Some(e.to_string()),
+            };
+            return json_response(StatusCode::BAD_REQUEST, json!({"error": err}));
+        }
+        Ok(Query(params)) => {
+            match search_product(q, params).await {
+                Ok(data) => match serde_json::to_value(&data) {
+                    Ok(v) => json_response(StatusCode::OK, v),
+                    Err(e) => internal_error(e),
+                },
+                Err(e) => json_response(
+                    StatusCode::BAD_GATEWAY,
+                    json!({"error": e.to_string()}),
+                ),
+            }
+        }
+    }
+}
+
+pub async fn product_router(
+    Path(url): Path<String>,
+    Query(query_params): Query<HashMap<String, String>>,
+) -> Response {
+    let url = Url::parse_with_params(
+        &format!("https://www.flipkart.com/{url}"),
+        query_params,
+    );
+
+    let Ok(parsed) = url else {
+        return json_response(
+            StatusCode::BAD_GATEWAY,
+            json!({"error": "Invalid URL"}),
+        );
+    };
+
+    match product_details(parsed).await {
+        Ok(data) => match serde_json::to_value(&data) {
+            Ok(v) => json_response(StatusCode::OK, v),
+            Err(e) => internal_error(e),
+        },
+        Err(e) => json_response(StatusCode::BAD_GATEWAY, json!({"error": e})),
+    }
+}
+
+/*
 async fn search_router(
     query: Option<Path<String>>,
     params_result: Result<Query<SearchParams>, axum::extract::rejection::QueryRejection>,
@@ -121,7 +194,7 @@ async fn product_router(
     }
     .unwrap_or_else(|e| default_error_response(e))
 }
-
+*/
 const DEFAULT_DEPLOYMENT_URL: &str = "https://0.0.0.0:10000";
 
 // Try visiting:
@@ -216,6 +289,11 @@ fn search_handler(query: std::path::PathBuf) -> Json<SearchResponse> {
     let q = query.to_string_lossy().to_string();
     search_router(Some(q))
 }
+#[get("/search?<query..>")]
+fn search_router(query: Option<String>) -> Json<SearchResponse>
+
+#[get("/product/<url..>?<params..>")]
+fn product_router(url: PathBuf, params: Form<HashMap<String, String>>) -> Json<ProductResponse>
 
 #[get("/product/<url..>")]
 fn product_handler(url: std::path::PathBuf) -> Json<ProductResponse> {
