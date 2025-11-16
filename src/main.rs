@@ -74,6 +74,7 @@ fn internal_error<E: std::fmt::Display>(e: E) -> Response {
     };
     json_response(StatusCode::INTERNAL_SERVER_ERROR, json!({"error": err}))
 }
+/*
 pub async fn search_router(
     query: Option<Path<String>>,
     params: Result<Query<SearchParams>, axum::extract::rejection::QueryRejection>,
@@ -125,6 +126,39 @@ pub async fn product_router(
             Err(e) => internal_error(e),
         },
         Err(e) => json_response(StatusCode::BAD_GATEWAY, json!({"error": e})),
+    }
+}
+*/
+#[get("/search?<params..>")]
+async fn search_no_query(params: Option<Form<SearchParams>>) -> Json<Value> {
+    search_router(None, params).await
+
+}
+#[get("/search/<query..>?<params..>")]
+async fn search_with_query(
+    query: RocketPathBuf,
+    params: Option<Form<SearchParams>>,
+) -> Json<Value> {
+    let q = query.to_string_lossy().to_string();
+    search_router(Some(q), params).await
+}
+
+#[get("/product/<url..>?<params..>")]
+async fn product_route(
+    url: RocketPathBuf,
+    params: Option<HashMap<String, String>>,
+) -> Json<Value> {
+    let full_url = format!("https://www.flipkart.com/{}", url.to_string_lossy());
+
+    // Parse URL with query params
+    let parsed = Url::parse_with_params(&full_url, params.unwrap_or_default());
+
+    match parsed {
+        Ok(actual_url) => match product_details(actual_url).await {
+            Ok(data) => Json(json!(data)),
+            Err(e) => Json(json!({ "error": e })),
+        },
+        Err(e) => Json(json!({ "error": e.to_string() })),
     }
 }
 
@@ -283,12 +317,13 @@ fn index() -> (Status, (rocket::http::ContentType, String)) {
 fn search_root() -> Json<SearchResponse> {
     search_router(None)
 }
-
+/*
 #[get("/search/<query..>")]
 fn search_handler(query: std::path::PathBuf) -> Json<SearchResponse> {
     let q = query.to_string_lossy().to_string();
     search_router(Some(q))
 }
+ 
 #[get("/search?<query..>")]
 fn search_router(query: Option<String>) -> Json<SearchResponse>
 
@@ -300,7 +335,7 @@ fn product_handler(url: std::path::PathBuf) -> Json<ProductResponse> {
     let product_url = url.to_string_lossy().to_string();
     product_router(product_url)
 }
-
+*/
 /// Fallback catch-all route
 #[catch(404)]
 fn not_found() -> Redirect {
