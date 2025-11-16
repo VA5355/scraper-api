@@ -103,7 +103,7 @@ async fn product_router(
     .unwrap_or_else(|e| default_error_response(e))
 }
 
-const DEFAULT_DEPLOYMENT_URL: &str = "http://0.0.0.0:3000";
+const DEFAULT_DEPLOYMENT_URL: &str = "https://0.0.0.0:10000";
 
 #[tokio::main]
 async fn main() {
