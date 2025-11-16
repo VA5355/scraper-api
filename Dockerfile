@@ -1,6 +1,12 @@
 FROM docker.io/rust:slim-bullseye as builder
 WORKDIR /usr/src/scraper-api
 RUN apt update && apt install -y libssl-dev
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 ENV DEPLOYMENT_URL 0.0.0.0:10000
 ENV OPENSSL_LIB_DIR=/usr/lib/x86_64-linux-gnu
 ENV OPENSSL_INCLUDE_DIR=/usr/include
