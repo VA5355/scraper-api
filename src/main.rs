@@ -49,6 +49,20 @@ pub struct ApiError {
     more_details: Option<String>,
 }
 
+use std::fmt;
+
+impl fmt::Display for ApiError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(details) = &self.more_details {
+            write!(f, "{} ({})", self.error_message, details)
+        } else {
+            write!(f, "{}", self.error_message)
+        }
+    }
+}
+
+impl std::error::Error for ApiError {}
+
 
 // Helper alias for responses we return from Rocket handlers
 type RJson = (Status, Json<Value>);
@@ -60,7 +74,7 @@ fn json_response(status: Status, value: Value) -> RJson {
 
 fn internal_error<E: std::fmt::Display>(e: E) -> RJson {
     let err = ApiError {
-        error_message: "Internal Server Error",
+        error_message: "Internal Server Error".to_string(),
         more_details: Some(format!(
             "There was some internal server error. {e}. \
             Report issues at https://github.com/dvishal485/flipkart-scraper-api"
@@ -82,6 +96,7 @@ fn index() -> RJson {
 //
 // We accept query params as Option<HashMap<String,String>> for flexibility.
 // If you have a `SearchParams` struct that implements FromForm, you can change this.
+/*
 #[get("/search?<params..>")]
 async fn search_root(params: Option<HashMap<String, String>>) -> RJson {
     // Convert query params map to your SearchParams if needed. Here we forward as map.
@@ -89,7 +104,7 @@ async fn search_root(params: Option<HashMap<String, String>>) -> RJson {
     let query = None::<String>;
     perform_search(query, params).await
 }
-/*
+ 
 #[get("/search/<query..>?<params..>")]
 async fn search_with_query(query: RocketPathBuf, params: Option<HashMap<String, String>>) -> RJson {
     let q = query.to_string_lossy().to_string();
@@ -112,7 +127,7 @@ async fn search_router(
     Json(result)
 }
 
-
+/*
 // Shared logic extracted from your old `search_router`
 async fn perform_search(query: Option<String>, params_map: Option<HashMap<String, String>>) -> RJson {
     // Convert params_map to your SearchParams type if you have one.
@@ -143,7 +158,7 @@ async fn perform_search(query: Option<String>, params_map: Option<HashMap<String
         Err(err) => json_response(Status::BadGateway, json!({ "error": err })),
     }
 }
-
+*/
 // ----------------------- PRODUCT ROUTE -----------------------------
 
 #[get("/product/<url..>?<params..>")]

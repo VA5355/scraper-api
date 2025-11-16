@@ -97,7 +97,7 @@ pub struct SearchResultResponse {
     fetch_from: String,
     result: Vec<SearchResultProduct>,
 }
-
+/*
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchParams {
     pub category: Option<String>,
@@ -137,3 +137,4 @@ impl SearchParams {
         }
     }
 }
+*/
