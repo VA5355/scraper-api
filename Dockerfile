@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-ENV DEPLOYMENT_URL 0.0.0.0:10000
+ENV DEPLOYMENT_URL 0.0.0.0:8000
 ENV OPENSSL_LIB_DIR=/usr/lib/x86_64-linux-gnu
 ENV OPENSSL_INCLUDE_DIR=/usr/include
 COPY Cargo.toml .
@@ -20,4 +20,4 @@ WORKDIR /usr/local/bin/
 COPY --from=builder /usr/src/scraper-api/target/release/scraper-api .
 
 CMD ["scraper-api"]
-EXPOSE 10000
+EXPOSE 8000
