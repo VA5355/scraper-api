@@ -34,6 +34,7 @@ use search::search_product;
 mod product;
 use axum::response::IntoResponse;
 use product::product_details;
+use serde_json::json;
 
 #[derive(Debug, Serialize)]
 pub struct ApiError {
