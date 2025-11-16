@@ -34,7 +34,6 @@ use search::search_product;
 mod product;
 use axum::response::IntoResponse;
 use product::product_details;
-#use serde_json::{json, Value};
 
 #[derive(Debug, Serialize)]
 pub struct ApiError {
@@ -186,8 +185,7 @@ async fn main() -> Result<(), rocket::Error> {
         .merge(("address", "0.0.0.0"))
         .merge(("port", std::env::var("PORT").unwrap_or("8000".into())));
 
-    let _ = rocket::custom(figment)
-        .mount("/", routes![hello])
+    let _ = rocket::custom(figment).mount("/", routes![hello])
         .mount("/hello", routes![world, mir])
         .mount("/wave", routes![wave])
         .launch()
