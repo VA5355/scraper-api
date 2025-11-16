@@ -2,7 +2,7 @@
 name = "scraper-api"
 description = "API to scrape search results and product details from Flipkart"
 version = "5.0.0"
-edition = "2023"
+edition = "2024"
 repository = "https://github.com/VA5355/scraper-api"
 authors = ["sales-man  <sales-man@storenotify.in>"]
 license = "Apache-2.0"
