@@ -180,6 +180,22 @@ fn hello(lang: Option<Lang>, opt: Options<'_>) -> String {
     greeting
 }
 
+#[rocket::main]
+async fn main() -> Result<(), rocket::Error> {
+    let figment = rocket::Config::figment()
+        .merge(("address", "0.0.0.0"))
+        .merge(("port", std::env::var("PORT").unwrap_or("8000".into())));
+
+    let _ = rocket::custom(figment)
+        #.mount("/", routes![index])
+        .mount("/", routes![hello])
+        .mount("/hello", routes![world, mir])
+        .mount("/wave", routes![wave])
+        .launch()
+        .await?;
+    Ok(())
+}
+/*
 #[launch]
 fn rocket() -> _ {
     rocket::build()
@@ -187,7 +203,7 @@ fn rocket() -> _ {
         .mount("/hello", routes![world, mir])
         .mount("/wave", routes![wave])
 }
-/*
+
 #[tokio::main]
 async fn main() {
     let deploy_url =
